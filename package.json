@@ -8,6 +8,7 @@
   "dependencies": {
     "express": "^4.13.1",
     "jade": "^1.11.0",
+    "materialize-css": "^0.96.1",
     "node-sass-middleware": "^0.9.0",
     "socket.io": "^1.3.6"
   }

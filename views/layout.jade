@@ -3,7 +3,12 @@ html
   head
     title Chat App 
     link(rel='stylesheet', href='/stylesheets/style.css')
+    link(rel='stylesheet', href='/stylesheets/materialize.css',  media='screen,projection')
       
   body 
-    block content
+    script(src="http://code.jquery.com/jquery-2.1.4.min.js")
+    script(src='/javascripts/materialize.js')
+    .container
+      block content
+    
   
