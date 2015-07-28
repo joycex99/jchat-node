@@ -1,0 +1,14 @@
+{
+  "name": "node-chat-app",
+  "version": "0.0.1",
+  "description": "real-time chat app",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "^4.13.1",
+    "jade": "^1.11.0",
+    "node-sass-middleware": "^0.9.0",
+    "socket.io": "^1.3.6"
+  }
+}

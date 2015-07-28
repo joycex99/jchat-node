@@ -1,0 +1,32 @@
+extends layout 
+
+block content 
+  ul#messages 
+  form(action="")
+    input(id="m")
+    button Send
+  
+  script(src="/socket.io/socket.io.js")
+  script(src="http://code.jquery.com/jquery-1.11.1.js")
+  script.
+    var socket = io();
+    var nameCollected = false;
+    socket.on('connect', function() {
+      if (!nameCollected) {
+        socket.emit('newUser', prompt("Please enter your name: "));
+        nameCollected = true;
+      }
+    });
+    
+    $('form').submit(function(){
+      socket.emit('chat message', $('#m').val());
+      $('#m').val('');
+      //console.log('client: message sent');
+      return false;
+    });
+    socket.on('chat message', function(msg){
+      var txt = msg.username + " says: " + msg.message;
+      $('#messages').append($('<li>').text(txt));
+      //console.log('client: message displayed');
+    });
+    
