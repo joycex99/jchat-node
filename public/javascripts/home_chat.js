@@ -1,5 +1,15 @@
 $(function() {
+  var COLORS = ['pink darken-2', 'deep-orange darken-1',
+                'blue darken-1', 'deep-purple',
+                'purple darken-1', 'red darken-3',
+                'light-blue'];
+  var COLORS_TEXT = ['pink-text darken-2', 'deep-orange-text darken-1',
+                     'blue-text darken-1', 'deep-purple-text',
+                     'purple-text darken-1', 'red-text darken-3',
+                     'light-blue-text'];
+  var TYPING_TIMER = 500;
 
+  //initialize variables
   var $nameInput = $('#name');
   var $messageInput = $('#inputMessage');
   var $loginForm = $('.form-card');
@@ -7,14 +17,19 @@ $(function() {
   var $chatArea = $('.chatArea');
   var $messages = $('.messages');
 
-  var socket = io();
   var username;
+  var typing = false;
+  var canAddType = true;
+  var lastTypingTime;
+  var socket = io();
+
 
   function setUsername() {
     username = $nameInput.val().trim();
     if (username) {
       $loginForm.fadeOut(function(){
         $chat.show();
+        $messageInput.focus();
       });
       socket.emit('add user', username);
     }
@@ -67,7 +82,7 @@ $(function() {
     var $li = $(
       '<li class=' + type + '>' +
         '<div class="profile">' +
-          '<div class="circle">'+initial+'</div>' +
+          '<div class="circle ' + userColor(user, false) + '">'+initial+'</div>' +
           '<b></b>' +
         '</div>' +
         '<p></p>' +
@@ -80,8 +95,54 @@ $(function() {
     postMessage($li);
   }
 
+  function userColor(user, forText) {
+    var hash = 2;
+    for (var i = 0; i < user.length; i++) {
+      hash = user.charCodeAt(i) + (hash<<5);
+    }
+    var index = hash % COLORS.length;
+    if (forText)
+      return COLORS_TEXT[index];
+    return COLORS[index];
+  }
+
+  function updateTyping() {
+    if (!typing) {
+      typing = true;
+      socket.emit('typing');
+    }
+    lastTypingTime = (new Date).getTime();
+    setTimeout(function(){
+      var timer = (new Date).getTime();
+      var timeDiff = timer - lastTypingTime;
+      if (timeDiff >= TYPING_TIMER && typing) {
+        socket.emit('stop typing');
+        typing = false;
+      }
+    }, TYPING_TIMER);
+  }
+
+  function addTypingMessage(username) {
+    var msg = " is typing...";
+    var $el = $('<li class="notification typing">' +
+                '<span class="' + userColor(username, true) + '">' + username + '</span>' +
+                msg + '</li>');
+    //var $el = $('<li>').addClass('notification typing').text(msg);
+    $el.data('username', username);
+    setTimeout(100, postMessage($el));
+  }
+
+  function removeTypingMessage(username) {
+    canAddType = false;
+    $('.notification.typing').filter(function(i){
+      return $(this).data('username') === username;
+    }).fadeOut(100, function(){
+      $(this).remove();
+    });
+  }
 
 
+  //fade in login form
   $loginForm.animate({
     opacity: 1
   }, 1000);
@@ -101,7 +162,16 @@ $(function() {
     }
   });
 
+  //submit chat on button press
+  $('#submitInput').click(function(){
+    sendMessage();
+  })
 
+  $messageInput.on('input', function(){
+    updateTyping();
+  })
+
+  //socket
   socket.on('login', function(numUsers){
     notify(null, numUsers);
   });
@@ -114,12 +184,18 @@ $(function() {
   socket.on('user left', function(data){
     var change = data.username + ' left.';
     notify(change, data.numUsers);
+    removeTypingMessage(data.username);
   });
 
   socket.on('new message', function(data){
     createChatMessage(data.message, data.username);
-    console.log('client: other users received message');
   })
 
+  socket.on('typing', function(data){
+    addTypingMessage(data.username);
+  });
 
+  socket.on('stop typing', function(data){
+    removeTypingMessage(data.username);
+  });
 });

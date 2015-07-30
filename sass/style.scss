@@ -65,20 +65,23 @@ ul {
   text-align: center;
 }
 
+.notification .typing {
+}
+
 .messages .chat-user {
   clear: both;
   width: 100%;
-	margin-bottom: 8px;
+	margin-bottom: 10px;
 	float: right;
-  padding-right: 30px;
+  padding-right: 40px;
 }
 
 .messages .chat-other {
   clear: both;
   width: 100%;
-	margin-bottom: 8px;
+	margin-bottom: 10px;
   float: left;
-  padding-left: 30px;
+  padding-left: 40px;
 }
 
 .chat-base {
@@ -111,8 +114,8 @@ ul {
 .profile-base {
   clear:both;
 	float:left;
-	height: 70px;
-	width: 45px;
+	height: 75px;
+	width: 60px;
 	text-align:center;
 	overflow: hidden;
 }
@@ -127,17 +130,27 @@ ul {
   float: left;
 }
 
-.profile .circle {
-	float: left;
-	width: 45px;
-	height: 45px;
+.circle-base {
+	width: 50px;
+	height: 50px;
 	border-radius: 50%;
-  background-color: #3f51b5;
   color: #fff;
   margin-bottom: 3px;
   font-size: 1.8em;
-  padding: 5px;
+  padding: 7px;
   text-align: center;
+}
+
+.chat-user .profile .circle {
+  @extend .circle-base;
+  float: right;
+  margin-right: 5px;
+}
+
+.chat-other .profile .circle {
+  @extend .circle-base;
+  float: left;
+  margin-left: 5px;
 }
 
 .circle b {

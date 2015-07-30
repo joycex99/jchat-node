@@ -44,14 +44,24 @@ io.on('connection', function(socket){
     });
   });
 
-  //check io.emit instead of socket.emit
-
   socket.on('new message', function(msg){
     socket.broadcast.emit('new message', {
       username: socket.username,
       message: msg
     });
     console.log('server: chat message received from ' + socket.username);
+  });
+
+  socket.on('typing', function(){
+    socket.broadcast.emit('typing', {
+      username: socket.username
+    });
+  });
+
+  socket.on('stop typing', function(){
+    socket.broadcast.emit('stop typing', {
+      username: socket.username
+    });
   });
 
   socket.on('disconnect', function() {
