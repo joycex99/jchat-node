@@ -1,31 +1,35 @@
 extends layout 
 
 block content 
-  ul#messages 
-  form(action="")
-    input(id="m")
-    button Send
-  
-  script(src="/socket.io/socket.io.js")
-  script.
-    var socket = io();
-    var nameCollected = false;
-    socket.on('connect', function() {
-      if (!nameCollected) {
-        socket.emit('newUser', prompt("Please enter your name: "));
-        nameCollected = true;
-      }
-    });
-    
-    $('form').submit(function(){
-      socket.emit('chat message', $('#m').val());
-      $('#m').val('');
-      console.log('client: message sent');
-      return false;
-    });
-    socket.on('chat message', function(msg){
-      var txt = msg.username + " says: " + msg.message;
-      $('#messages').append($('<li>').text(txt));
-      console.log('client: message displayed');
-    });
-    
+
+  //- ul#messages 
+  //- form(action="")
+  //-   input(id="m")
+  //-   button Send
+  .row
+    .full-body.valign-wrapper  
+      .form-card.z-depth-2.valign
+        h5 What's your nickname?
+        .input-field.col.s8.offset-s2
+          input#name(type='text', placeholder='Nickname', class='validate center-align large-input', maxlength = "15")
+          //button#submitLogin(type='button', class='btn waves-effect waves-light') Submit 
+    .chat  
+      .col.s8.offset-s2
+        .chatArea
+          ul.messages
+        .inputForm.blue-grey.lighten-3
+          textArea#inputMessage(type='text', class='inputArea', placeholder='Send a chat...')
+          #submitInput.inputButton SEND
+        //- .row
+        //-   .chatArea.col.s12
+        //-     h1 test
+        //-     ul.notifications
+        //- .row 
+        //-   .inputForm.col.s8
+        //-     .col.s6
+        //-       textArea#inputMessage(type='text', class='inputArea')
+            
+      
+        
+         
+  script(src='/javascripts/home_chat.js')

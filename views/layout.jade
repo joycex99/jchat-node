@@ -4,11 +4,14 @@ html
     title Chat App 
     link(rel='stylesheet', href='/stylesheets/style.css')
     link(rel='stylesheet', href='/stylesheets/materialize.css',  media='screen,projection')
-      
-  body 
     script(src="http://code.jquery.com/jquery-2.1.4.min.js")
+    script(src="/socket.io/socket.io.js")
     script(src='/javascripts/materialize.js')
-    .container
-      block content
+    
+  body 
+    nav 
+      .nav-wrapper.teal
+        a.brand-logo.center(href="#") jChat 
+    block content
     
   

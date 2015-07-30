@@ -25,16 +25,44 @@ app.get('/', function(req, res){
   res.render('index');
 })
 
+
+var numUsers = 0;
+
 io.on('connection', function(socket){
   console.log('connected');
-  socket.on('newUser', function(username){
+  var userJoined = false;
+
+  socket.on('add user', function(username){
     socket.username = username;
+    ++numUsers;
+    userJoined = true;
+
+    socket.emit('login', numUsers);
+    socket.broadcast.emit('user joined', {
+      username: username,
+      numUsers: numUsers
+    });
   });
-  socket.on('chat message', function(msg){
-    io.emit('chat message', {
+
+  //check io.emit instead of socket.emit
+
+  socket.on('new message', function(msg){
+    socket.broadcast.emit('new message', {
       username: socket.username,
       message: msg
     });
-    console.log('server: chat message received with ' + socket.username);
+    console.log('server: chat message received from ' + socket.username);
   });
-})
+
+  socket.on('disconnect', function() {
+    if (userJoined) {
+      --numUsers;
+
+      //notify everyone else that this user has left
+      socket.broadcast.emit('user left', {
+        username: socket.username,
+        numUsers: numUsers
+      });
+    }
+  });
+});
