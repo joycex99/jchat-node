@@ -1,12 +1,13 @@
 var express = require('express');
 var path = require('path');
 var sassMiddleware = require('node-sass-middleware');
+var Room = require('./room.js');
 var app = express();
 
 var port = process.env.PORT || 3000;
 
 var io = require('socket.io').listen(app.listen(port));
-//var io = require('socket.io')(server);
+var rooms = {};
 
 //configure app
 app.set('view engine', 'jade');
@@ -22,56 +23,84 @@ app.use(
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', function(req, res){
-  res.render('index');
-})
+  res.render('global_chat', {private: false});
+});
+
+app.get('/chats/:id', function(req, res){
+  var id = +req.params.id;
+  res.render('global_chat', {private: true});
+});
 
 
-var numUsers = 0;
+// GLOBAL CHAT
+var all = new Room('Home', null);
+rooms['all'] = all;
 
-io.on('connection', function(socket){
-  console.log('connected');
+var chat = io.on('connection', function(socket){
   var userJoined = false;
 
+  //private chat?
+  socket.on('join', function(roomId) {
+    var room;
+    if (rooms[roomId]) { //if room already exists
+      room = rooms[roomId]
+      console.log("room already exists");
+    } else { //make new room
+      room = new Room('test', roomId);
+      console.log("making new room");
+    }
+    rooms[roomId] = room;
+    socket.join(roomId);
+    socket.room = roomId;
+  });
+
   socket.on('add user', function(username){
+    var room = socket.room ? socket.room : 'all';
+    socket.join(room);
     socket.username = username;
-    ++numUsers;
+    ++rooms[room].numUsers;
     userJoined = true;
 
-    socket.emit('login', numUsers);
-    socket.broadcast.emit('user joined', {
+    socket.emit('login', rooms[room].numUsers);
+    socket.broadcast.to(room).emit('user joined', {
       username: username,
-      numUsers: numUsers
+      numUsers: rooms[room].numUsers
     });
   });
 
   socket.on('new message', function(msg){
-    socket.broadcast.emit('new message', {
+    var room = socket.room ? socket.room : 'all';
+
+    socket.broadcast.to(room).emit('new message', {
       username: socket.username,
       message: msg
     });
-    console.log('server: chat message received from ' + socket.username);
   });
 
   socket.on('typing', function(){
-    socket.broadcast.emit('typing', {
+    var room = socket.room ? socket.room : 'all';
+    socket.broadcast.to(room).emit('typing', {
       username: socket.username
     });
   });
 
   socket.on('stop typing', function(){
-    socket.broadcast.emit('stop typing', {
+    var room = socket.room ? socket.room : 'all';
+    socket.broadcast.to(room).emit('stop typing', {
       username: socket.username
     });
   });
 
   socket.on('disconnect', function() {
     if (userJoined) {
-      --numUsers;
+      var room = socket.room ? socket.room : 'all';
+      --rooms[room].numUsers;
+      socket.leave(room);
 
       //notify everyone else that this user has left
-      socket.broadcast.emit('user left', {
+      socket.broadcast.to(room).emit('user left', {
         username: socket.username,
-        numUsers: numUsers
+        numUsers: rooms[room].numUsers
       });
     }
   });

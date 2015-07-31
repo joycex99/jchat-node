@@ -24,6 +24,18 @@ $(function() {
   var socket = io();
 
 
+  /* FOR PRIVATE CHATS */
+  var pathArray = window.location.pathname.split('/');
+  var base = pathArray[1];
+  var id = pathArray[2];
+  var privateRoom = false;
+
+  if (base === 'chats' && id) {
+    socket.emit('join', id);
+    privateRoom = true;
+  }
+
+
   function setUsername() {
     username = $nameInput.val().trim();
     if (username) {
@@ -51,9 +63,13 @@ $(function() {
       msg += change + ' ';
 
     if (numUsers === 1) {
-      msg += 'There is now 1 participant.'
+      if (privateRoom) {
+        msg += 'This is an empty chat room. Please invite others by sending them this link.';
+      } else {
+        msg += 'There is now 1 participant.';
+      }
     } else {
-      msg += 'There are now ' + numUsers + ' participants.'
+      msg += 'There are now ' + numUsers + ' participants.';
     }
 
     //format

@@ -2,10 +2,6 @@ extends layout
 
 block content 
 
-  //- ul#messages 
-  //- form(action="")
-  //-   input(id="m")
-  //-   button Send
   .row
     .full-body.valign-wrapper  
       .form-card.z-depth-2.valign
@@ -20,16 +16,9 @@ block content
         .inputForm.blue-grey.lighten-3
           textArea#inputMessage(type='text', class='inputArea', placeholder='Send a chat...')
           #submitInput.inputButton SEND
-        //- .row
-        //-   .chatArea.col.s12
-        //-     h1 test
-        //-     ul.notifications
-        //- .row 
-        //-   .inputForm.col.s8
-        //-     .col.s6
-        //-       textArea#inputMessage(type='text', class='inputArea')
-            
-      
         
-         
-  script(src='/javascripts/home_chat.js')
+        
+  //if (private)
+    //script(src='/javascripts/private_chat.js') 
+  //else 
+  script(src='/javascripts/global_chat.js')
