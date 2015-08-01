@@ -18,7 +18,7 @@ ul {
   word-wrap: break-word;
 }
 
-.full-body {
+.full-form-container {
   position: absolute;
   top: 0px;
   bottom: 0px;
@@ -29,7 +29,6 @@ ul {
 /* Login page */
 
 .form-card {
-  opacity: 0;
   display: block;
   text-align: center;
   margin: 0 auto;
@@ -39,17 +38,128 @@ ul {
   background-color: #fff;
 }
 
-/* chat area */
+#formLogin, #formRoom {
+  position: relative;
+  display: none;
+  z-index: 999;
+}
+
+.close {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  color: #CDCDCD;
+  font-size: 1.3em;
+  cursor: pointer;
+}
+
+/************ chat screen ***********/
+
+/****** sidebar *******/
 
 .chat {
   display: none;
 }
 
+.content-holder {
+  height: 500px;
+  overflow: hidden;
+  margin: 40px 40px 40px 30px;;
+  min-height: 500px;
+  width: 100%;
+  border-radius: 10px;
+  //background: #eceff1;
+  border: 1px solid #DADADA;
+}
+
+.user-list {
+  min-height: 200px;
+  width: 100%;
+  padding: 0px;
+  overflow-y: scroll;
+}
+
+.room-list {
+  position: relative;
+  min-height: 200px;
+  width: 100%;
+  padding: 0px;
+}
+
+.content-label {
+  width: 100%;
+  background: #bdcbd2;
+  padding: 10px;
+  color: #555;
+}
+
+.users {
+  height: calc(100%-42); //content label height
+  margin: 0;
+  width: 100%;
+}
+
+.users .user-preview {
+  clear: both;
+  padding: 10px 15px;
+  width: 100%;
+  border-bottom: 1px solid #DADADA;
+}
+
+.user-preview .circle-preview {
+  float: left;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 1.3em;
+  padding: 3px 2px;
+  text-align: center;
+}
+
+.user-preview p {
+  display: inline-block;
+  margin: 0px;
+  padding-left: 20px;
+  padding-top: 5px;
+  font-size: 1.2em;
+}
+
+.rooms {
+  height: calc(100%-42); //content label height
+  margin: 0;
+  width: 100%;
+  overflow-y: scroll;
+
+  li {
+    padding: 10px 15px;
+    width: 100%;
+    border-bottom: 1px solid #DADADA;
+
+    a {
+      text-decoration: none;
+      color: inherit;
+      font-size: 1.1em;
+    }
+  }
+}
+
+.add-room-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+/************ chat area *************/
+
 .chatArea {
   width: 66.66667%;
+  margin: 0px 30px 0px 60px;
   position: absolute;
   top: 64px; //navbar
-  bottom: 140px; //inputForm + 10px;
+  bottom: 130px; //inputForm + 10px;
 }
 
 .messages {
@@ -61,14 +171,13 @@ ul {
 
 .messages .notification {
   color: #aaaaaa;
-  margin: 5px;
   text-align: center;
   max-width: 70%;
   margin: 0 auto;
+  margin-bottom: 10px;
 }
 
-.notification .typing {
-}
+.notification .typing {}
 
 .messages .chat-user {
   clear: both;
@@ -161,71 +270,100 @@ ul {
 	clear: both;
 }
 
-/* input area */
+/*********** input area ***********/
 
 .inputForm {
-  box-sizing: border-box;
-  width: 66.67%;
-  height: 130px;
   position: fixed;
-  padding: 15px;
-  bottom: 0px;
+  padding-top: 20px;
+  bottom: 20px;
+  margin-left: 20px;
+  margin-right: 0px;
 }
 
-.inputArea {
-  height: 100px;
-  width: 85%;
-	display: block;
-	float:left;
-	margin: 0 auto;
-	background-color: #f9f9f9;
-	border: 1px solid #cccccc;
-	border-radius: 2px;
-	padding: 20px;
-	font-size: 1.1em;
-	color:inherit;
+.icon-pad {
+  padding-top: 10px;
 }
 
-.inputButton {
-  width: 10%;
-  min-width: 80px;
-  height: 50px;
-  margin: 0 auto;
-  margin-right: 10px;
-  margin-left: 10px;
-  margin-top: 10px;
-  padding: 12px;
-  float:right;
-	text-align:center;
-  background-color: #006064;
-	display: inline-block;
-	border: none;
-	border-radius: 2px;
-	color:white;
-	font-weight: bold;
-	font-size: 1.2em;
-	outline: none;
-	cursor:pointer;
-  &:hover {
-    background-color: #00838f;
-  }
+.button-send {
+  border: none;
+  display: inline-block;
+  outline: 0;
+  padding: 15px 10px;
+  text-transform: uppercase;
+  vertical-align: middle;
+  cursor: pointer;
 }
 
-
-#submit {
-	width: 110px;
-	height: 60px;
-	float:right;
-	text-align:center;
-	background-color: #73b4d4;
-	display: block;
-	margin: 0 auto;
-	border: none;
-	box-shadow: 3px 3px 3px #efedee;
-	border-radius: 2px;
-	color:white;
-	font-weight: bold;
-	font-size: 17px;
-	outline: none;
-	cursor:pointer;
+.send-word-pad {
+  padding-bottom: 5px;
 }
+
+.send-icon-pad {
+  padding-left: 5px;
+  padding-top: 15px;
+}
+
+// .inputForm {
+//   margin: 0px 40px 0px 80px;
+//   width: 65%;
+//   height: 80px;
+//   position: fixed;
+//   padding: 5px;
+//   bottom: 40px;
+// }
+//
+// .inputArea {
+//   height: 70px;
+//   width: 89%;
+// 	display: block;
+// 	float:left;
+// 	margin: 0 auto;
+// 	background-color: #f9f9f9;
+// 	border: 1px solid #cccccc;
+// 	border-radius: 2px;
+// 	padding: 20px;
+// 	font-size: 1.1em;
+// 	color:inherit;
+// }
+//
+// .inputButton {
+//   width: 8%;
+//   min-width: 70px;
+//   height: 50px;
+//   margin: 0 auto;
+//   margin: 8px;
+//   padding: 10px;
+//   float:right;
+// 	text-align:center;
+//   background-color: #006064;
+// 	display: inline-block;
+// 	border: none;
+// 	border-radius: 2px;
+// 	color:white;
+// 	//font-weight: bold;
+// 	font-size: 1.2em;
+// 	outline: none;
+// 	cursor:pointer;
+//   &:hover {
+//     background-color: #00838f;
+//   }
+// }
+//
+//
+// #submit {
+// 	width: 110px;
+// 	height: 60px;
+// 	float:right;
+// 	text-align:center;
+// 	background-color: #73b4d4;
+// 	display: block;
+// 	margin: 0 auto;
+// 	border: none;
+// 	box-shadow: 3px 3px 3px #efedee;
+// 	border-radius: 2px;
+// 	color:white;
+// 	font-weight: bold;
+// 	font-size: 17px;
+// 	outline: none;
+// 	cursor:pointer;
+// }

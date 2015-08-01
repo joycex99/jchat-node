@@ -3,22 +3,46 @@ extends layout
 block content 
 
   .row
-    .full-body.valign-wrapper  
-      .form-card.z-depth-2.valign
+    .full-form-container.valign-wrapper  
+      .form-card.z-depth-2.valign#formLogin 
         h5 What's your nickname?
         .input-field.col.s8.offset-s2
-          input#name(type='text', placeholder='Nickname', class='validate center-align large-input', maxlength = "15")
-          //button#submitLogin(type='button', class='btn waves-effect waves-light') Submit 
+          input#name(type='text', placeholder='Nickname', class='validate center-align', maxlength = "12")
+      .form-card.z-depth-2.valign#formRoom 
+        .close x
+        h5 What's your new room name? 
+        .input-field.col.s8.offset-s2 
+          input#roomName(type='text', placeholder='Room name', class='validate center-align')
     .chat  
-      .col.s8.offset-s2
+      .col.s3 
+        .content-holder
+          .user-list
+            .content-label Users 
+            ul.users
+          .room-list 
+            .content-label Rooms 
+            ul.rooms
+              li 
+                a(href='/') Lobby 
+            .add-room-btn
+              a#newRoom(class='btn-floating waves-effect waves-light cyan')
+                i.material-icons add
+      .col.s9.offset-s3
         .chatArea
           ul.messages
-        .inputForm.blue-grey.lighten-3
-          textArea#inputMessage(type='text', class='inputArea', placeholder='Send a chat...')
-          #submitInput.inputButton SEND
+          .input-field.inputForm
+            .row.offset-input
+              .col.s10
+                i.material-icons.prefix.icon-pad mode_edit
+                input#inputMessage(type='text', class='validate', placeholder='Enter a message here')
+              .col.s2
+                div#submitInput(class='button-send teal-text') Send
+                  //i.material-icons.send-icon-pad.teal-text send
+              
+        
+        //- .inputForm.blue-grey.lighten-3
+        //-   textArea#inputMessage(type='text', class='inputArea', placeholder='Send a chat...')
+        //-   #submitInput.inputButton SEND
         
         
-  //if (private)
-    //script(src='/javascripts/private_chat.js') 
-  //else 
   script(src='/javascripts/global_chat.js')
