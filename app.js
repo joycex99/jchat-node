@@ -1,4 +1,5 @@
 var express = require('express');
+var session = require('express-session');
 var path = require('path');
 var sassMiddleware = require('node-sass-middleware');
 var Room = require('./room.js');
@@ -12,23 +13,44 @@ var rooms = {};
 //configure app
 app.set('view engine', 'jade');
 app.set('views', path.join(__dirname, 'views'));
+app.use(session({
+  secret: 'secret',
+  cookie: {maxAge: 60000},
+  resave: false,
+  saveUninitialized: false
+}));
 app.use(
   sassMiddleware({
     src: __dirname + '/sass',
     dest: __dirname + '/public/stylesheets',
     outputStyle: 'compressed',
-    prefix:  '/stylesheets'  // Where prefix is at <link rel="stylesheets" href="prefix/style.css"/>
+    prefix:  '/stylesheets'
   })
 );
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.use(function(req, res, next){
+  var sess = req.session;
+  if (sess.views) {
+    sess.views++;
+  } else {
+    sess.views = 1;
+  }
+  res.locals.views = sess.views;
+  next();
+})
 
 app.get('/', function(req, res){
   res.render('global_chat', {private: false});
 });
 
 app.get('/chats/:id', function(req, res){
-  var id = +req.params.id;
-  res.render('global_chat', {private: true});
+  var id = req.params.id;
+  if (id.length === 4) {
+    res.render('global_chat', {private: true});
+  } else {
+    res.end("This page does not exist");
+  }
 });
 
 
@@ -39,23 +61,46 @@ rooms['lobby'] = all;
 var chat = io.on('connection', function(socket){
   var userJoined = false;
 
-  //private chat?
-  socket.on('join', function(roomId) {
-    var room;
-    if (rooms[roomId]) { //if room already exists
-      room = rooms[roomId]
-    } else { //make new room
-      room = new Room('test', roomId);
+  //check if room at incoming request exists
+  //if so, join room, else, send back request asking
+  //for room name
+  socket.on('join with id', function(roomId) {
+    var roomName = null;
+    if (rooms[roomId]) {
+      var roomName = rooms[roomId].name;
+      joinRoom(socket, roomId, roomName);
+    } else {
+      socket.emit('ask for name', {
+        roomId: roomId
+      });
     }
-    rooms[roomId] = room;
-    socket.join(roomId);
-    socket.room = roomId;
-    socket.rooms[roomId] = rooms[roomId];
+  });
 
-    socket.emit('add room', {
-      roomName: 'Private',
-      route: roomId
-    });
+  //join room with given id and room name
+  socket.on('join', function(data) {
+    joinRoom(socket, data.roomId, data.roomName);
+  });
+
+  //create a random id for room, create room, redirect
+  socket.on('create room', function(roomName){
+    var id = Math.floor(Math.random()*9000)+1000;
+    var room = new Room(roomName, id);
+    rooms[id] = room;
+    socket.emit('redirect to room', {id: id});
+  });
+
+  socket.on('check username', function(data){
+    if (rooms[data.roomId] && !rooms[data.roomId].contains(data.username)) {
+      socket.emit('username passed', {
+        username: data.username
+      });
+    } else {
+      if (!rooms[data.roomId])
+        console.log('Room does not exist. Id: ' + data.roomId);
+      else
+        console.log('Username already in use');
+      socket.emit('username failed');
+    }
   });
 
   socket.on('add user', function(username){
@@ -91,14 +136,6 @@ var chat = io.on('connection', function(socket){
     socket.broadcast.to(room).emit('add user profile', {
         username: username
     });
-
-
-    // for (var i = 0; i < room.members.length; i++) {
-    //   var username = room.members[i];
-    //   io.sockets.in(room).emit('add user profile', {
-    //     username: username
-    //   });
-    // }
   });
 
   socket.on('new message', function(msg){
@@ -128,14 +165,40 @@ var chat = io.on('connection', function(socket){
     if (userJoined) {
       var room = socket.room ? socket.room : 'lobby';
       --rooms[room].numUsers;
-      socket.leave(room);
       rooms[room].removeMember(socket.username);
 
-      //notify everyone else that this user has left
-      socket.broadcast.to(room).emit('user left', {
-        username: socket.username,
-        numUsers: rooms[room].numUsers
-      });
+      //disconnect user socket from room
+      socket.leave(room);
+
+      //if room is empty, delete it from system so id can be reused
+      //else, notify everyone else in room that user has left
+      if (rooms[room].numUsers === 0 && room != 'lobby') {
+        delete rooms[room];
+      } else {
+        socket.broadcast.to(room).emit('user left', {
+          username: socket.username,
+          numUsers: rooms[room].numUsers
+        });
+      }
     }
   });
 });
+
+//create and add room to list, or simply join
+function joinRoom(socket, roomId, roomName) {
+  var room;
+  if (rooms[roomId]) { //if room already exists
+    room = rooms[roomId];
+  } else { //make new room
+    room = new Room(roomName, roomId);
+  }
+  rooms[roomId] = room;
+  socket.join(roomId);
+  socket.room = roomId;
+  socket.rooms[roomId] = rooms[roomId];
+
+  socket.emit('add room', {
+    roomName: rooms[roomId].name,
+    route: roomId
+  });
+}

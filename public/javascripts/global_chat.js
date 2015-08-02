@@ -15,7 +15,7 @@ $(function() {
   var $formHolder = $('.full-form-container')
   var $loginForm = $('#formLogin');
   var $chat = $('.chat');
-var $messages = $('.messages');
+  var $messages = $('.messages');
   var $contentHolder = $('.content-holder');
   var $users = $('.users');
   var $rooms = $('.rooms');
@@ -26,6 +26,8 @@ var $messages = $('.messages');
   var typing = false;
   var canAddType = true;
   var lastTypingTime;
+  var locked = false;
+  var roomId;
   var socket = io();
 
 
@@ -33,24 +35,35 @@ var $messages = $('.messages');
   var pathArray = window.location.pathname.split('/');
   var base = pathArray[1];
   var id = pathArray[2];
-  var privateRoom = false;
 
   if (base === 'chats' && id) {
-    socket.emit('join', id);
-    privateRoom = true;
+    if (id.length === 4) {
+      socket.emit('join with id', id);
+      roomId = id;
+    }
+  } else {
+    roomId = 'lobby';
   }
 
 
-  function setUsername() {
-    username = $nameInput.val().trim();
-    if (username) {
-      $formHolder.fadeOut(function(){
-        $loginForm.hide();
-        $chat.show();
-        $messageInput.focus();
+  function submitUsername() {
+    var name = $nameInput.val().trim();
+    if (name && !locked) {
+      socket.emit('check username', {
+        roomId: roomId,
+        username: name
       });
-      socket.emit('add user', username);
     }
+  }
+
+  function setUsername(name) {
+    username = name;
+    $formHolder.fadeOut(function(){
+      $loginForm.hide();
+      $chat.show();
+      $messageInput.focus();
+    });
+    socket.emit('add user', name);
   }
 
   function sendMessage() {
@@ -67,8 +80,8 @@ var $messages = $('.messages');
     if (change)
       msg += change + ' ';
     if (numUsers === 1) {
-      if (privateRoom) {
-        msg += 'This is an empty chat room. Please invite others by sending them this link.';
+      if (roomId != 'lobby') {
+        msg += 'This is a private chat room. Please invite others by sending them this link.';
       } else {
         msg += 'There is now 1 participant.';
       }
@@ -199,15 +212,12 @@ var $messages = $('.messages');
       $roomName.val('');
       $formHolder.hide();
       $roomForm.hide();
-      alert(roomName);
+      socket.emit('create room', roomName);
     }
   }
 
-
-  //fade in login form
+  //fade in login form, focus
   $loginForm.fadeIn(1000);
-
-  //Focus
   $nameInput.focus();
 
   //set room info container height
@@ -220,7 +230,7 @@ var $messages = $('.messages');
     if (event.which === 13) {  //'ENTER'
       event.preventDefault();
       if (!username) { //login
-        setUsername();
+        submitUsername();
       } else if ($roomForm.css('display') != 'none') { //new room form
         createNewRoom();
       } else { //send chat
@@ -241,6 +251,7 @@ var $messages = $('.messages');
   $('#newRoom').click(function(){
     $formHolder.show();
     $roomForm.fadeIn(500);
+    $roomName.focus();
   });
 
   $('.close').click(function(){
@@ -249,6 +260,33 @@ var $messages = $('.messages');
   });
 
   //socket
+
+  socket.on('ask for name', function(data){
+    var name = prompt("A chat room at this address does not yet exist! Enter a name to create it:");
+    if (name != null) {
+      if (name.trim()) {
+         socket.emit('join', {
+           roomId: data.roomId,
+           roomName: name.trim()
+         });
+       } else {
+         alert('You cannot create a room with an empty name.');
+         locked = true;
+       }
+    } else {
+      alert('You cannot create a room without a name.');
+      locked = true;
+    }
+  });
+
+  socket.on('username passed', function(data){
+    setUsername(data.username);
+  });
+
+  socket.on('username failed', function(){
+    alert('This username has already been taken. Please choose a different one.');
+  })
+
   socket.on('login', function(data){
     notify(null, data.numUsers);
   });
@@ -260,6 +298,10 @@ var $messages = $('.messages');
   socket.on('add room', function(data){
     addRoomToList(data.roomName, data.route);
   })
+
+  socket.on('redirect to room', function(data){
+    window.location.href = "/chats/"+data.id;
+  });
 
   socket.on('user joined', function(data){
     var change = data.username + ' joined.';

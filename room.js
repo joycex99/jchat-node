@@ -16,4 +16,13 @@ Room.prototype.removeMember = function(username) {
   }
 }
 
+Room.prototype.contains = function(username) {
+  for (var i = 0; i < this.members.length; i++) {
+    if (this.members[i] === username) {
+      return true;
+    }
+  }
+  return false;
+}
+
 module.exports = Room;
