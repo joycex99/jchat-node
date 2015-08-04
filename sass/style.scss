@@ -284,6 +284,18 @@ ul {
 	clear: both;
 }
 
+.divider-container {
+  margin: 20px;
+  overflow: hidden;
+}
+
+.clear-floats {
+  height:0;
+  line-height:0;
+  display:block;
+  clear:both;
+}
+
 /*********** input area ***********/
 
 .inputForm {

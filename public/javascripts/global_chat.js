@@ -325,8 +325,11 @@ $(function() {
     $nameInput.focus();
   });
 
-  socket.on('load chat page', function(data){
+  socket.on('set username', function(data){
     username = data.username;
+  });
+
+  socket.on('load chat page', function(){
     $formHolder.hide();
     $loginForm.hide();
     $chat.show();
@@ -395,6 +398,15 @@ $(function() {
 
   socket.on('new message', function(data){
     createChatMessage(data.message, data.username);
+  });
+
+  socket.on('separate messages', function() {
+    var $floatClear = $('<div>').addClass('clear-floats');
+    var $divider = $('<div class="divider-container">' +
+                        '<div class="divider"></div>' +
+                      '</div>');
+    postMessage($floatClear);
+    postMessage($divider);
   });
 
   socket.on('typing', function(data){

@@ -10,7 +10,6 @@ var app = express();
 var port = process.env.PORT || 3000;
 
 var io = require('socket.io').listen(app.listen(port));
-var rooms = {};
 
 var sessionMiddleware = session({
   name: 'jchat_session',
@@ -47,8 +46,11 @@ io.use(function(socket, next){
 // userRooms: object, key = name, val = id
 // previousRooms: array of userRooms keys (before adding new)
 
+var rooms = {};
 var all = new Room('Lobby', 'lobby');
 rooms['lobby'] = all;
+var chatHistory = {};
+chatHistory['lobby'] = [];
 var userJoined = false;
 
 
@@ -63,12 +65,10 @@ app.get('/', function(req, res){
   }
   //set previous rooms to user rooms before adding new room to list
   req.session.previousRooms = Object.keys(req.session.userRooms);
-  console.log('PREVIOUS ROOMS BEFORE ADDING: ' + req.session.previousRooms);
   if (!req.session.userRooms['Lobby']) {
     req.session.userRooms['Lobby'] = 'lobby';
   }
 
-  console.log('PREVIOUS ROOMS AFTER ADDING: ' + req.session.previousRooms);
   res.render('global_chat', {private: false});
 });
 
@@ -83,10 +83,8 @@ app.get('/chats/:id', function(req, res){
   }
   if (rooms[id]) {
     req.session.previousRooms = Object.keys(req.session.userRooms);
-    console.log('GET PREVIOUS ROOMS BEFORE ADDING: ' + req.session.previousRooms);
     var name = rooms[id].name;
     req.session.userRooms[name] = id;
-    console.log('GET PREVIOUS ROOMS AFTER ADDING: ' + req.session.previousRooms);
   }
   console.log(JSON.stringify(req.session.userRooms));
   res.render('global_chat', {private: true});
@@ -108,7 +106,6 @@ app.delete('/deleteRoom', function(req, res){
   var room = rooms[id];
   if (room) {
     --room.numReferences;
-    console.log('Num references for ' + toDelete + ' after deletion: ' + rooms[req.session.userRooms[toDelete]].numReferences);
   }
   var index = req.session.previousRooms.indexOf(toDelete);
   if (index != -1) {
@@ -120,16 +117,9 @@ app.delete('/deleteRoom', function(req, res){
   if (rooms[id].numUsers === 0) {
     if (rooms[id].numReferences == 0) {
       delete rooms[id];
-      console.log('DELETED FROM SYSTEM');
-    } else {
-      console.log('STILL REFERENCES TO ROOM: ' + rooms[roomId].numReferences);
+      delete chatHistory[id];
     }
-  } else {
-    console.log('SOMEONE STILL USING ROOM');
   }
-  console.log('Rooms after removal of room: ' + JSON.stringify(req.session.userRooms));
-
-
   res.send(req.body);
 });
 
@@ -166,6 +156,7 @@ io.sockets.on('connection', function(socket){
   socket.on('create room', function(data){
     var room = new Room(data.roomName, data.roomId);
     rooms[data.roomId] = room;
+    chatHistory[data.roomId] = [];
     socket.emit('redirect to room', {id: data.roomId});
   });
 
@@ -201,6 +192,11 @@ io.sockets.on('connection', function(socket){
       username: socket.username,
       message: msg
     });
+    if (chatHistory[socket.room].length >= 10) {
+      chatHistory[socket.room].splice(0, 1);
+    }
+    var msgObject = {username: socket.username, message: msg};
+    chatHistory[socket.room].push(msgObject);
   });
 
   socket.on('typing', function(){
@@ -243,9 +239,7 @@ function checkSession(socket, roomId, roomName) {
   } else {
     joinRoom(socket, roomId, roomName);
     addUser(socket, username);
-    socket.emit('load chat page', {
-      username: username
-    });
+    socket.emit('load chat page');
   }
 }
 
@@ -272,6 +266,9 @@ function joinRoom(socket, roomId, roomName) {
 function addUser(socket, name) {
   var room = socket.room;
   socket.username = name;
+  socket.emit('set username', {
+    username: socket.username
+  });
 
   if (!rooms[room].contains(name)) { //if user isn't already in the room
     userJoined = true;
@@ -279,22 +276,13 @@ function addUser(socket, name) {
     rooms[room].addMember(name);
 
     //add a reference to the room if user has rooms and current room not on it
-    console.log('Initial room references: ' + rooms[room].numReferences);
-
     var sessRooms = socket.request.session.userRooms;
     var prevRooms = socket.request.session.previousRooms;
-    console.log('Initial session rooms: ' + JSON.stringify(sessRooms));
-    console.log('Initial userRooms: ' + JSON.stringify(socket.userRooms));
-    console.log('Initial previousRooms: ' + prevRooms);
 
     if (!prevRooms) {
-      console.log('No previous visitations yet');
       ++rooms[room].numReferences;
     } else if (prevRooms.indexOf(rooms[room].name) === -1) {
-      console.log('Room not on list yet');
       ++rooms[room].numReferences;
-    } else {
-      console.log('No references added');
     }
 
     //let everyone else know user has joined
@@ -310,12 +298,24 @@ function addUser(socket, name) {
   } else {
     socket.repeat = true;
   }
-
+  displayChatHistory(socket);
   updateSidebar(socket);
-  console.log('New num references for ' + room + ': ' + rooms[room].numReferences);
-  console.log('New socket userRooms: ' + JSON.stringify(socket.userRooms));
   console.log('');
 }
+
+function displayChatHistory(socket) {
+  var chatArray = chatHistory[socket.room];
+  for (var i = 0; i < chatArray.length; i++) {
+    socket.emit('new message', {
+      message: chatArray[i].message,
+      username: chatArray[i].username,
+    });
+  }
+  if (chatArray.length > 0) {
+    socket.emit('separate messages');
+  }
+}
+
 
 function updateSidebar(socket) {
   var room = socket.room;
