@@ -36,15 +36,6 @@ $(function() {
   var base = pathArray[1];
   var id = pathArray[2];
 
-  if (base === 'chats' && id) {
-    if (id.length === 4) {
-      socket.emit('join with id', id);
-      roomId = id;
-    }
-  } else {
-    roomId = 'lobby';
-  }
-
 
   function submitUsername() {
     var name = $nameInput.val().trim();
@@ -58,12 +49,24 @@ $(function() {
 
   function setUsername(name) {
     username = name;
-    $formHolder.fadeOut(function(){
-      $loginForm.hide();
-      $chat.show();
-      $messageInput.focus();
+
+    $.ajax({
+      url: '/submitUsername',
+      method: 'POST',
+      data: {name: username},
+      dataType: 'JSON'
+    })
+    .done(function() {
+      $formHolder.fadeOut(function(){
+        $loginForm.hide();
+        $chat.show();
+        $messageInput.focus();
+      });
+      socket.emit('add user', name);
+    })
+    .fail(function(){
+      alert('Error submitting username');
     });
-    socket.emit('add user', name);
   }
 
   function sendMessage() {
@@ -185,8 +188,6 @@ $(function() {
     $li.data('username', username);
     $users.append($li);
     $users[0].scrollTop = $users[0].scrollHeight;
-    console.log('scrollTop: ' + $users[0].scrollTop);
-    console.log('scrollHeight: ' + $users[0].scrollHeight);
   }
 
   function removeUserFromList(username) {
@@ -195,30 +196,70 @@ $(function() {
     }).remove();
   }
 
-  function addRoomToList(roomName, id) {
+  function addRoomToList(roomName, id, isCurrent) {
     var route = '/chats/'+id;
     var $li = $(
-      '<li>' +
+      '<li id="' + roomName + '">' +
+        '<span class="remove-room">  —  </span>' +
         '<a href="' + route + '">' + roomName + '</a>' +
       '</li>'
     );
+    if (isCurrent) {
+      $li.css('background-color', '#eaeef2');
+    }
     $li.data('roomName', roomName);
     $rooms.append($li);
+    $rooms[0].scrollTop = $rooms[0].scrollHeight;
   }
 
-  function createNewRoom() {
+  function removeRoomFromList(roomName) {
+    $('.rooms li').filter(function(i){
+      return $(this).attr('id') === roomName;
+    }).remove();
+
+    $.ajax({
+      url: '/deleteRoom',
+      method: 'DELETE',
+      data: {roomName: roomName},
+      dataType: 'JSON'
+    })
+    .fail(function(){
+      alert('Error deleting this room');
+    });
+  }
+
+  function submitNewRoom() {
     if ($roomName) {
-      var roomName = $roomName.val().trim();
-      $roomName.val('');
-      $formHolder.hide();
-      $roomForm.hide();
-      socket.emit('create room', roomName);
+      socket.emit('check roomName', {
+        roomName: $roomName.val().trim(),
+        fromUrl: false
+      });
     }
   }
 
-  //fade in login form, focus
-  $loginForm.fadeIn(1000);
-  $nameInput.focus();
+  function createNewRoom() {
+    var roomName = $roomName.val().trim();
+    var id = Math.floor(Math.random()*9000)+1000;
+    $.ajax({
+      url: '/submitRoom',
+      method: 'POST',
+      data: {roomName: roomName, roomId: id},
+      dataType: 'JSON'
+    })
+    .done(function(){
+      $roomName.val('');
+      $formHolder.hide();
+      $roomForm.hide();
+      socket.emit('create room', {
+        roomName: roomName,
+        roomId: id
+      });
+    })
+    .fail(function(){
+      alert('Error creating room');
+    });
+  }
+
 
   //set room info container height
   $contentHolder.outerHeight($(window).height()-64-100); //navbar, margin, input
@@ -232,7 +273,7 @@ $(function() {
       if (!username) { //login
         submitUsername();
       } else if ($roomForm.css('display') != 'none') { //new room form
-        createNewRoom();
+        submitNewRoom();
       } else { //send chat
         sendMessage();
       }
@@ -259,24 +300,41 @@ $(function() {
     $roomForm.hide();
   });
 
-  //socket
+  $(document).on('click', '.remove-room', function(){
+    var toRemove = $(this).parent().attr('id');
+    socket.emit('remove room', {
+      roomName: toRemove
+    });
+  });
 
-  socket.on('ask for name', function(data){
-    var name = prompt("A chat room at this address does not yet exist! Enter a name to create it:");
-    if (name != null) {
-      if (name.trim()) {
-         socket.emit('join', {
-           roomId: data.roomId,
-           roomName: name.trim()
-         });
-       } else {
-         alert('You cannot create a room with an empty name.');
-         locked = true;
-       }
+  //socket
+  socket.on('connect', function(){
+    if (base === 'chats' && id) {
+      if (id.length === 4) {
+        roomId = id;
+      }
     } else {
-      alert('You cannot create a room without a name.');
-      locked = true;
+      roomId = 'lobby';
     }
+    socket.emit('load', roomId);
+  });
+
+  socket.on('load login', function(){
+    //fade in login form, focus
+    $loginForm.fadeIn(1000);
+    $nameInput.focus();
+  });
+
+  socket.on('load chat page', function(data){
+    username = data.username;
+    $formHolder.hide();
+    $loginForm.hide();
+    $chat.show();
+    $messageInput.focus();
+  });
+
+  socket.on('page does not exist', function(data) {
+    $('#notFound').show();
   });
 
   socket.on('username passed', function(data){
@@ -295,9 +353,29 @@ $(function() {
     addUserToList(data.username);
   });
 
+  socket.on('roomName passed', function(){
+    createNewRoom();
+  });
+
+  socket.on('roomName failed', function(){
+    alert('You already have a room with this name');
+  });
+
   socket.on('add room', function(data){
-    addRoomToList(data.roomName, data.route);
-  })
+    addRoomToList(data.roomName, data.route, data.isCurrent);
+  });
+
+  socket.on('highlight lobby', function(){
+    $('#lobbyLink').css('background-color', '#eaeef2');
+  });
+
+  socket.on('cannot remove room', function(){
+    alert('You cannot delete the room you are currently in.');
+  });
+
+  socket.on('remove room', function(data){
+    removeRoomFromList(data.roomName);
+  });
 
   socket.on('redirect to room', function(data){
     window.location.href = "/chats/"+data.id;

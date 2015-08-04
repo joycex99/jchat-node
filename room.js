@@ -2,6 +2,7 @@ function Room(name, id) {
   this.name = name;
   this.id = id;
   this.numUsers = 0;
+  this.numReferences = 0;
   this.members = [];
 }
 
@@ -17,12 +18,7 @@ Room.prototype.removeMember = function(username) {
 }
 
 Room.prototype.contains = function(username) {
-  for (var i = 0; i < this.members.length; i++) {
-    if (this.members[i] === username) {
-      return true;
-    }
-  }
-  return false;
+  return (this.members.indexOf(username) != -1);
 }
 
 module.exports = Room;

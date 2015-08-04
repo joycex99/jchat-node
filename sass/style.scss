@@ -18,6 +18,12 @@ ul {
   word-wrap: break-word;
 }
 
+#notFound {
+  margin: 0 auto;
+  color: #979d9e;
+  display: none;
+}
+
 .full-form-container {
   position: absolute;
   top: 0px;
@@ -84,6 +90,7 @@ ul {
   min-height: 200px;
   width: 100%;
   padding: 0px;
+  overflow-y: scroll;
 }
 
 .content-label {
@@ -142,6 +149,13 @@ ul {
       font-size: 1.1em;
     }
   }
+}
+
+.remove-room {
+  color: #be0000;
+  cursor: pointer;
+  display:inline-block;
+  padding: 2px 10px 2px 2px;
 }
 
 .add-room-btn {

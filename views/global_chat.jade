@@ -3,10 +3,11 @@ extends layout
 block content 
   .row
     .full-form-container.valign-wrapper  
+      h1#notFound Chat not found
       .form-card.z-depth-2.valign#formLogin 
         h5 What's your nickname?
         .input-field.col.s8.offset-s2
-          input#name(type='text', placeholder='Nickname', class='validate center-align', maxlength = "12")
+          input#name(type='text', placeholder='Nickname', class='validate center-align', maxlength = "10")
       .form-card.z-depth-2.valign#formRoom 
         .close x
         h5 What's your new room name? 
@@ -21,7 +22,7 @@ block content
           .room-list 
             .content-label Rooms 
             ul.rooms
-              li 
+              li#lobbyLink 
                 a(href='/') Lobby 
             .add-room-btn
               a#newRoom(class='btn-floating waves-effect waves-light cyan')
