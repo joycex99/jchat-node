@@ -4,7 +4,7 @@ jChat Node is a multi-room, real-time messaging application built on top of node
 <img src="https://cdn.rawgit.com/JoyceX99/jchat-node/master/images/jchat_sample.jpg" alt="Sample Chat" width="700">
 
 ## Demo
-View a live demo at <http://www.jchat-node.herokuapp.com>
+View a live demo at http://jchat-node.herokuapp.com
 
 ## Installation
 Clone the repo (`https://github.com/JoyceX99/jchat-node.git`), `cd` into the new directory and `npm install` the dependencies. 
