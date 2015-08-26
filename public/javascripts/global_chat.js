@@ -62,7 +62,10 @@ $(function() {
         $chat.show();
         $messageInput.focus();
       });
-      socket.emit('add user', name);
+      socket.emit('add user', {
+        username: name,
+        roomId: roomId
+      });
     })
     .fail(function(){
       alert('Error submitting username');

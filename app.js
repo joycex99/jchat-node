@@ -47,16 +47,13 @@ io.use(function(socket, next){
 // previousRooms: array of userRooms keys (before adding new)
 
 var rooms = {};
-var all = new Room('Lobby', 'lobby');
-rooms['lobby'] = all;
+rooms['lobby'] = new Room('Lobby', 'lobby');
 var chatHistory = {};
 chatHistory['lobby'] = [];
-var userJoined = false;
 
 
 /* ROUTES */
 app.get('/', function(req, res){
-  console.log('');
   if (!req.session.previousRooms) {
     req.session.previousRooms = [];
   }
@@ -72,8 +69,7 @@ app.get('/', function(req, res){
   res.render('global_chat', {private: false});
 });
 
-app.get('/chats/:id', function(req, res){
-  console.log('');
+app.get('/chats/:id', function(req, res) {
   var id = req.params.id;
   if (!req.session.previousRooms) {
     req.session.previousRooms = [];
@@ -86,7 +82,6 @@ app.get('/chats/:id', function(req, res){
     var name = rooms[id].name;
     req.session.userRooms[name] = id;
   }
-  console.log(JSON.stringify(req.session.userRooms));
   res.render('global_chat', {private: true});
 });
 
@@ -122,6 +117,7 @@ app.delete('/deleteRoom', function(req, res){
   }
   res.send(req.body);
 });
+
 
 /* CHAT SOCKET */
 
@@ -183,8 +179,9 @@ io.sockets.on('connection', function(socket){
   });
 
   //called on valid submission of username
-  socket.on('add user', function(username){
-    addUser(socket, username);
+  socket.on('add user', function(data){
+    joinRoom(socket, data.roomId, rooms[data.roomId].name);
+    addUser(socket, data.username);
   });
 
   socket.on('new message', function(msg){
@@ -213,17 +210,28 @@ io.sockets.on('connection', function(socket){
 
   socket.on('disconnect', function() {
     var room = socket.room;
-    if (rooms[room] && userJoined && !socket.repeat) {
-      --rooms[room].numUsers;
-      rooms[room].removeMember(socket.username);
-
+    if (socket.joinedRoom && rooms[room]) {
+      var members = rooms[room].members;
       //disconnect user socket from room
       socket.leave(room);
 
-      socket.broadcast.to(room).emit('user left', {
-        username: socket.username,
-        numUsers: rooms[room].numUsers
-      });
+      //if only one socket from that user, delete
+      if (members[socket.username] === 1) {
+        console.log('ONLY ONE SOCKET, DELETING USER')
+        --rooms[room].numUsers;
+        rooms[room].removeMember(socket.username);
+
+        socket.broadcast.to(room).emit('user left', {
+          username: socket.username,
+          numUsers: rooms[room].numUsers
+        });
+      }
+      //if multiple sockets connected, decrement member's socket count
+      else {
+        members[socket.username] -= 1;
+        console.log('MULTIPLE SOCKETS, DECREMENTING MEMBER');
+        console.log(rooms[room].members);
+      }
     }
   });
 });
@@ -235,7 +243,6 @@ function checkSession(socket, roomId, roomName) {
   var username = socket.request.session.username;
   if (!username) {
     socket.emit('load login');
-    joinRoom(socket, roomId, roomName);
   } else {
     joinRoom(socket, roomId, roomName);
     addUser(socket, username);
@@ -246,6 +253,7 @@ function checkSession(socket, roomId, roomName) {
 
 //create and add room to list, or simply join
 function joinRoom(socket, roomId, roomName) {
+  socket.joinedRoom = true;
   if (!rooms[roomId]) { //if room doesn't exist yet, add
     room = new Room(roomName, roomId);
     rooms[roomId] = room;
@@ -271,9 +279,8 @@ function addUser(socket, name) {
   });
 
   if (!rooms[room].contains(name)) { //if user isn't already in the room
-    userJoined = true;
+    console.log('New name, adding to room');
     ++rooms[room].numUsers;
-    rooms[room].addMember(name);
 
     //add a reference to the room if user has rooms and current room not on it
     var sessRooms = socket.request.session.userRooms;
@@ -295,12 +302,13 @@ function addUser(socket, name) {
     socket.broadcast.to(room).emit('add user profile', {
         username: name
     });
-  } else {
-    socket.repeat = true;
   }
+
+  rooms[room].addMember(name);
+  console.log(rooms[room].members);
+
   displayChatHistory(socket);
   updateSidebar(socket);
-  console.log('');
 }
 
 function displayChatHistory(socket) {
@@ -325,9 +333,7 @@ function updateSidebar(socket) {
     numUsers: rooms[room].numUsers
   });
 
-  //add all room members to list
-  for (var i = 0; i < rooms[room].members.length; i++) {
-    var user = rooms[room].members[i];
+  for (var user in rooms[room].members) {
     socket.emit('add user profile', {
       username: user
     });
